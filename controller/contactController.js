@@ -5,7 +5,12 @@ const Contact = require("../models/contactModels");
 // @route GET /api/contact
 // @access Public
 const getContacts = asyncHandler(async (req, res) => {
-    const contacts = await Contact.find();
+    const contacts = await Contact.find(req.params.id);
+    if(!contacts){
+
+        res.status(404);
+        throw new error("contact not found")
+    }
     res.status(200).json(contacts);
 });
 
@@ -13,23 +18,27 @@ const getContacts = asyncHandler(async (req, res) => {
 // @route POST /api/contact
 // @access Public
 const createContact = asyncHandler(async (req, res) => {
-    console.log("The requested body is", req.body);
+    console.log("📥 Incoming request:", req.body);
 
-    const { name, gmail, phone } = req.body;
-
+    const { name, gmail, phone } = req.body; // ❌ No "await" here!
+    
     if (!name || !gmail || !phone) {
-        res.status(400).json({ message: "The request body is empty" });
-        return; 
+        console.log("❌ Validation failed: Missing fields");
+        return res.status(400).json({ message: "All fields are required!" });
     }
 
-    const contact = await Contact.create({
-        name,
-        gmail,
-        phone
-    });
+    try {
+        const contact = await Contact.create({ name, gmail, phone });
 
-    res.status(201).json(contact);
+        console.log("✅ Contact saved:", contact);
+        res.status(201).json(contact);
+    } catch (error) {
+        console.error("❌ Error saving contact:", error.message);
+        res.status(500).json({ message: "Database error", error: error.message });
+    }
 });
+
+
 
 // @desc Get individual contact
 // @route GET /api/contact/:id
