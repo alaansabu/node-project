@@ -2,25 +2,26 @@ const asyncHandler = require("express-async-handler");
 const Contact = require("../models/contactModels");
 
 // @desc Get all contacts
-// @route GET /api/contact
-// @access Public
+// @route GET /api/contacts
+// @access Private
 const getContacts = asyncHandler(async (req, res) => {
-    const contacts = await Contact.find(req.params.id);
-    if(!contacts){
+    const contacts = await Contact.find({ user_id: req.user.id });
 
+    if (!contacts || contacts.length === 0) {
         res.status(404);
-        throw new error("contact not found")
+        throw new Error("No contacts found");
     }
+
     res.status(200).json(contacts);
 });
 
 // @desc Create a contact
-// @route POST /api/contact
-// @access Public
+// @route POST /api/contacts
+// @access Private
 const createContact = asyncHandler(async (req, res) => {
     console.log("📥 Incoming request:", req.body);
 
-    const { name, gmail, phone } = req.body; // ❌ No "await" here!
+    const { name, gmail, phone } = req.body;
     
     if (!name || !gmail || !phone) {
         console.log("❌ Validation failed: Missing fields");
@@ -28,7 +29,12 @@ const createContact = asyncHandler(async (req, res) => {
     }
 
     try {
-        const contact = await Contact.create({ name, gmail, phone });
+        const contact = await Contact.create({ 
+            name, 
+            gmail, 
+            phone, 
+            user_id: req.user.id // ✅ Ensure contact is linked to user
+        });
 
         console.log("✅ Contact saved:", contact);
         res.status(201).json(contact);
@@ -38,54 +44,53 @@ const createContact = asyncHandler(async (req, res) => {
     }
 });
 
-
-
 // @desc Get individual contact
-// @route GET /api/contact/:id
-// @access Public
+// @route GET /api/contacts/:id
+// @access Private
 const getContact = asyncHandler(async (req, res) => {
-    const contact = await Contact.findById(req.params.id);
+    const contact = await Contact.findOne({ _id: req.params.id, user_id: req.user.id });
 
     if (!contact) {
         res.status(404);
-        throw new Error("Contact not found");
+        throw new Error("Contact not found or unauthorized");
     }
 
     res.status(200).json(contact);
 });
 
 // @desc Update a contact
-// @route PUT /api/contact/:id
-// @access Public
+// @route PUT /api/contacts/:id
+// @access Private
 const updateContact = asyncHandler(async (req, res) => {
-    const contact = await Contact.findById(req.params.id);
+    const contact = await Contact.findOne({ _id: req.params.id, user_id: req.user.id });
 
     if (!contact) {
         res.status(404);
-        throw new Error("Contact not found");
+        throw new Error("Contact not found or unauthorized");
     }
 
     const updatedContact = await Contact.findByIdAndUpdate(
         req.params.id,
-        req.body, // Updated data
-        { new: true } // Return the updated document
+        req.body, 
+        { new: true }
     );
 
     res.status(200).json(updatedContact);
 });
 
 // @desc Delete a contact
-// @route DELETE /api/contact/:id
-// @access Public
+// @route DELETE /api/contacts/:id
+// @access Private
 const deleteContact = asyncHandler(async (req, res) => {
-    const contact = await Contact.findById(req.params.id);
+    const contact = await Contact.findOne({ _id: req.params.id,});
+    // user_id: req.user.id 
 
     if (!contact) {
         res.status(404);
-        throw new Error("Contact not found");
+        throw new Error("Contact not found or unauthorized");
     }
 
-    await contact.deleteOne(); // Delete the contact
+    await contact.deleteOne(); 
     res.status(200).json({ message: `Deleted contact ${req.params.id}` });
 });
 

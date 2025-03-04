@@ -1,14 +1,16 @@
 const express = require("express");
-
 const router = express.Router();
-const {registerUser,loginUser,showUser} = require("../controller/userController")
-// register
-router.post("/register",registerUser);
 
-//login
-router.post("/login" ,loginUser);
+const { registerUser, loginUser, showUser } = require("../controller/userController");
+const validateToken = require("../middleWare/validateToken"); // Fixed folder naming
 
-//display currrent details
-router.get("/show" ,showUser);
+// Register
+router.post("/register", registerUser);
 
-module.exports = router ; 
+// Login
+router.post("/login", loginUser);
+
+// Display current user details (Protected Route)
+router.get("/show", validateToken, showUser);
+
+module.exports = router;

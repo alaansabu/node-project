@@ -50,24 +50,46 @@ res.status(201).json({
 });
 
 // @desc Login user
-// @route POST /api/contact/loginuser
+// @route POST /api/user/login
 // @access Public
 const loginUser = asyncHandler(async (req, res) => {
+    const { gmail, password } = req.body;
 
-const{gmail, password} = req.body;
-if(!gmail || !password){
-    res.status(400)
-throw new Error("this fields are mandetory")
+    // Check if fields are missing
+    if (!gmail || !password) {
+        res.status(400);
+        throw new Error("Both email and password are required");
+    }
 
-}
-    res.json({ message: "Login successful" });
+    // Find user by email
+    const user = await User.findOne({ gmail });
+
+    if (user && (await bcrypt.compare(password, user.password))) {
+        // Generate JWT token
+        const accessToken = jwt.sign(
+            {
+                user: {
+                    userName: user.userName,
+                    gmail: user.gmail,
+                    id: user.id,
+                },
+            },
+            process.env.ACCESS_TOKEN, // ✅ Fixed Typo
+            { expiresIn: "15m" }
+        );
+
+        res.status(200).json({ accessToken });
+    } else {
+        res.status(401);
+        throw new Error("Invalid email or password");
+    }
 });
 
 // @desc Show user
 // @route GET /api/contact/show
 // @access Public
 const showUser = asyncHandler(async (req, res) => {
-    res.json({ message: "Display successful" });
+    res.json(req.user);
 });
 
 module.exports = { registerUser, loginUser, showUser };
